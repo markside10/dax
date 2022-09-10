@@ -1,0 +1,151 @@
+% Quantity Sold to Females = 
+VAR TotalOrders_Female =
+CALCULATE(
+    SUM(
+        'Sales by Store'[quantity_sold]
+    ),
+    FILTER(
+        'Customer Lookup',
+        'Customer Lookup'[gender] = "F"
+    )
+)
+VAR QuantitySold = 
+SUM(
+    'Sales by Store'[quantity_sold]
+)
+VAR Ratio = 
+DIVIDE(
+    TotalOrders_Female,
+    QuantitySold,
+    "-"
+)
+RETURN
+Ratio
+
+
+Cost = 
+SUMX(
+    'Sales by Store',                  
+    'Sales by Store'[quantity_sold] *   
+    RELATED(
+        'Product Lookup'[current_cost]
+    )
+)
+
+Customer Sales = 
+SUMX(
+    'Sales by Store',
+    'Sales by Store'[quantity_sold] * 'Sales by Store'[unit_price]
+)
+
+Customer Sales (Last Year) = 
+CALCULATE(
+    [Customer Sales],
+    DATEADD(
+        'Calendar'[Transaction_Date],
+        -1,
+        Year
+    )
+)
+
+Customer Sales LY (ISBLANK) = 
+IF(
+    ISBLANK(
+        [Customer Sales (Last Year)]
+    ),
+    "No Sales",
+    [Customer Sales (Last Year)]
+)
+
+Order by Females (Wrong) = 
+VAR TotalOrder = 
+SUM(
+    'Sales by Store'[quantity_sold]
+)
+RETURN
+CALCULATE(
+    TotalOrder,
+    FILTER(
+        'Customer Lookup',
+        'Customer Lookup'[gender] = "F"
+    )
+)
+
+Profit = 
+[Customer Sales] - [Cost]
+
+Average Days Value = 
+SELECTEDVALUE(
+    'Average Days'[Average Days],
+    30
+)
+
+
+CROSSJOIN Demo = 
+CROSSJOIN(
+    VALUES(
+        'Product Lookup'[product_category]
+    ),
+    VALUES(
+        'Product Lookup'[product_group]
+    ),
+    FILTER(
+        VALUES(
+        'Store Lookup'[store_id]
+    ),
+    'Store Lookup'[store_id] = 3
+    )
+)
+
+
+Number of Food Items Made = 
+SUMX(
+    RELATEDTABLE(
+        'Food Inventory'
+    ),
+    'Food Inventory'[quantity_start_of_day]
+)
+
+
+Repeat Customer Sales (INTERSECT Assignment) = 
+VAR PurchasedWeek45 = 
+CALCULATETABLE(
+    VALUES(
+        'Sales by Store'[customer_id]
+    ),
+    'Calendar'[Week_ID] = 45,
+    'Calendar'[Year_ID] = 2018
+)
+VAR PurchasedWeek46 = 
+CALCULATETABLE(
+    VALUES(
+        'Sales by Store'[customer_id]
+    ),
+    'Calendar'[Week_ID] = 46,
+    'Calendar'[Year_ID] = 2018
+)
+VAR ReturningCustomers = 
+INTERSECT(
+    PurchasedWeek45,
+    PurchasedWeek46
+)
+VAR Revenue_Profit = 
+CALCULATETABLE(
+    ADDCOLUMNS(
+        ReturningCustomers,
+        "Revenue",
+        [Customer Sales],
+        "Profit",
+        [Profit]
+    ),
+    'Calendar'[Week_ID] = 46
+)
+RETURN
+Revenue_Profit
+
+
+UNION Demo = 
+UNION(
+    'Target Sales - March 2019 (DATATABLE)',
+    'Target Sales - April 2019 (DATATABLE)'
+)
